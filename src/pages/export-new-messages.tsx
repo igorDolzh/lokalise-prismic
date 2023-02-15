@@ -174,6 +174,26 @@ async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, 
     sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages)
 }
 
+async function checkNewMessages(file: any, filter: string) {
+    console.log('Hello', file.name)
+    const zip = await JSZip.loadAsync(file)
+    const fileNames = Object.keys(zip.files)
+    const filterArray = filter.split(',')
+
+    for (const file of fileNames) {
+        const fileName = file.split('$')[0]
+        if (filterArray.includes(fileName)) {
+            const data = await zip.file(file)?.async("string")
+        
+            if (data) {
+                processFile(data, fileName)
+                //console.log(file)
+            }
+        }
+      }
+    console.log(Object.keys(messages))
+}
+
 export const usePersistForm = ({
     value,
     localStorageKey,
@@ -208,6 +228,13 @@ export default function App() {
         handleFile(prismicZipFile[i], filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages.join(','));
     }
   }
+  
+  const onCheck = () => {
+    const { prismicZipFile, filter } = form.getValues()
+    for (var i = 0; i < prismicZipFile.length; i++) {
+        checkNewMessages(prismicZipFile[i], filter);
+    }
+  }
 
   
   React.useEffect(() => {
@@ -238,11 +265,17 @@ export default function App() {
       {...register('languages', { required: true })}
     />
 
+
+
       {/* <Selector control={control} {...register('languages', { required: true })} name="languages"  /> */}
 
       <Input placeholder="Filter" type="text" {...register('filter', { required: true })} />
 
       <Input type="file" {...register('prismicZipFile', { required: true })} />
+
+      <Input type="button" value="New messages" onClick={() => {
+        onCheck()
+      }}/>
 
       <Input type="submit" />
     </Form>
