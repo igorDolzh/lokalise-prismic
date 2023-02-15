@@ -1,5 +1,7 @@
 {
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
-  "/_document": "pages/_document.js"
+  "/_document": "pages/_document.js",
+  "/apply-recent-translations": "pages/apply-recent-translations.js",
+  "/export-new-messages": "pages/export-new-messages.js"
 }

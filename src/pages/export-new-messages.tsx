@@ -1,55 +1,12 @@
 import React from 'react';
 import { useForm, useController, Controller } from 'react-hook-form';
-import {
-    Container,
-    FormControl,
-    FormLabel,
-    Button,
-    FormErrorMessage,
-    HStack,
-    useBoolean,
-  } from "@chakra-ui/react";
-import { Select } from "chakra-react-select"
+
 import styled from 'styled-components';
 import JSZip from 'jszip'
 import MultiSelect from "@khanacademy/react-multi-select";
 
 import {languageOptions} from '../helpers/index'
 
-function Selector({ control, name, ...props }: {name: string, control: any}) {
-    const {
-      field,
-      fieldState: { error },
-    } = useController({
-      name,
-      control,
-      rules: { required: true },
-    });
-    
-  
-    return (
-
-        <FormControl py={4} isInvalid={!!error} id={"selector"}>
-        <FormLabel>{"Hi"}</FormLabel>
-  
-        <Select
-          isMulti
-          ref={field.ref}
-          options={languageOptions}
-          placeholder="Languages"
-          closeMenuOnSelect={false}
-          onChange={field.onChange}
-          onBlur={field.onBlur} 
-          value={field.value} 
-          name={field.name}
-          {...props}
-      />    
-  
-        <FormErrorMessage>{error && error.message}</FormErrorMessage>
-      </FormControl>
-
-    );
-  }
   
   const Form = styled.form`
       display: flex;
@@ -224,7 +181,8 @@ export default function App() {
     handleSubmit,
     watch,
     formState,
-    control
+    control,
+    setValue
   } = form
   const onSubmit = (data: any) => {
     const { prismicZipFile, filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages } = form.getValues()
@@ -234,35 +192,6 @@ export default function App() {
   }
 
   console.log(watch('languages')); // watch input value by passing the name of it
-//   return (
-//     <Controller
-//     control={control}
-//     name="food"
-//     rules={{ required: "Please enter at least one food group." }}
-//     render={({
-//       field: { onChange, onBlur, value, name, ref },
-//       fieldState: { error }
-//     }) => (
-//       <FormControl py={4} isInvalid={!!error} id="food">
-//         <FormLabel>Food Groups</FormLabel>
-
-//         <Select
-//           isMulti
-//           name={name}
-//           ref={ref}
-//           onChange={onChange}
-//           onBlur={onBlur}
-//           value={value}
-//           options={foodGroups}
-//           placeholder="Food Groups"
-//           closeMenuOnSelect={false}
-//         />
-
-//         <FormErrorMessage>{error && error.message}</FormErrorMessage>
-//       </FormControl>
-//     )}
-//   />
-//   )
   return (
     /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
     <Form onSubmit={handleSubmit(onSubmit)}>
@@ -272,20 +201,12 @@ export default function App() {
 
       <Input defaultValue="" placeholder="Lokalise Token" type="password" {...register('lokaliseToken', { required: true })} />
 
-      <Select
-    isMulti
-    options={[
-      {
-        label: "I can't be removed",
-        value: "fixed",
-        isFixed: true,
-      },
-      {
-        label: "I can be removed",
-        value: "not-fixed",
-      },
-    ]}
-  />
+      <MultiSelect
+      options={languageOptions}
+      selected={watch('languages')}
+      onSelectedChanged={(selected: any) => setValue('languages', selected)}
+      {...register('languages', { required: true })}
+    />
 
       {/* <Selector control={control} {...register('languages', { required: true })} name="languages"  /> */}
 

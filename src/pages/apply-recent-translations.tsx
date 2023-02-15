@@ -3,6 +3,9 @@ import { useForm } from 'react-hook-form';
 import styled from 'styled-components';
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
+import MultiSelect from "@khanacademy/react-multi-select";
+
+import {languageOptions} from '../helpers/index'
 
 const messages = {}
 
@@ -393,6 +396,7 @@ export default function ApplyRecentTranslations() {
       handleSubmit,
       watch,
       formState,
+      setValue
     } = form
     const onSubmit = (data: any) => {
         const { prismicZipFile, filter, languages, lokaliseToken } = form.getValues()
@@ -404,7 +408,12 @@ export default function ApplyRecentTranslations() {
     return (
         /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
         <Form onSubmit={handleSubmit(onSubmit)}>
-          <Input defaultValue="" placeholder="Languages" type="text" {...register('languages', { required: true })} />
+            <MultiSelect
+              options={languageOptions}
+              selected={watch('languages')}
+              onSelectedChanged={(selected: any) => setValue('languages', selected)}
+              {...register('languages', { required: true })}
+            />
     
           <Input defaultValue="" placeholder="Filter" type="text" {...register('filter', { required: true })} />
 
