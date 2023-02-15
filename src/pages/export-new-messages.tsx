@@ -1,9 +1,66 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useController, Controller } from 'react-hook-form';
+import {
+    Container,
+    FormControl,
+    FormLabel,
+    Button,
+    FormErrorMessage,
+    HStack,
+    useBoolean,
+  } from "@chakra-ui/react";
+import { Select } from "chakra-react-select"
 import styled from 'styled-components';
 import JSZip from 'jszip'
-import MultiSelect from "@khanacademy/react-multi-select";
 
+import {languageOptions} from '../helpers/index'
+
+function Selector({ control, name, ...props }: {name: string, control: any}) {
+    const {
+      field,
+      fieldState: { error },
+    } = useController({
+      name,
+      control,
+      rules: { required: true },
+    });
+    
+  
+    return (
+
+        <FormControl py={4} isInvalid={!!error} id={"selector"}>
+        <FormLabel>{"Hi"}</FormLabel>
+  
+        <Select
+          isMulti
+          ref={field.ref}
+          options={languageOptions}
+          placeholder="Languages"
+          closeMenuOnSelect={false}
+          onChange={field.onChange}
+          onBlur={field.onBlur} 
+          value={field.value} 
+          name={field.name}
+          {...props}
+      />    
+  
+        <FormErrorMessage>{error && error.message}</FormErrorMessage>
+      </FormControl>
+
+    );
+  }
+  
+  const Form = styled.form`
+      display: flex;
+      flex-direction: column;
+      max-width: 400px;
+  `
+  
+  const Input = styled.input`
+      padding: 10px;
+      border-radius: 10px;
+      margin: 10px;
+  `
 
 const messages = {}
 function processFile(rawdata: string, initialTag: string) {
@@ -60,7 +117,7 @@ function processFile(rawdata: string, initialTag: string) {
         iterateKeys(jsonFile, 0)
     }
 }
-async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string) {
+async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string) {
     const messages = Object.keys(data)
     const KEYS_PER_REQUEST = 500 // The amount of keys in one request
     const LOCALISE_PROJECT_ID = '302610005f102393819ad8.14734010'
@@ -93,7 +150,7 @@ async function createKeys(keys: any) {
             projectId: LOCALISE_PROJECT_ID,
             taskTitle: lokaliseTaskTitle,
             taskDescription: lokaliseTaskDescription,
-            languages: ['es']
+            languages: languages.split(',')
         })
       };
       
@@ -137,7 +194,7 @@ run()
 }
 
 
-async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string) {
+async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string) {
     console.log('Hello', file.name)
     const zip = await JSZip.loadAsync(file)
     const fileNames = Object.keys(zip.files)
@@ -155,29 +212,56 @@ async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, 
         }
       }
     console.log(messages)
-    sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken)
+    sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages)
 }
 
-
+const defaultValues = { languages: [], prismicZipFile: "", filter: "", lokaliseTaskTitle: "", lokaliseTaskDescription: "", lokaliseToken: "" };
 export default function App() {
-    const form = useForm();
+    const form = useForm({defaultValues});
   const {
     register,
     handleSubmit,
     watch,
     formState,
+    control
   } = form
-  const onSubmit = (data: any) => console.log(data);
-  
-  React.useEffect(() => {
-    const { prismicZipFile, filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken } = form.getValues()
+  const onSubmit = (data: any) => {
+    const { prismicZipFile, filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages } = form.getValues()
     for (var i = 0; i < prismicZipFile.length; i++) {
-        handleFile(prismicZipFile[i], filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken);
+        handleFile(prismicZipFile[i], filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages.join(','));
     }
-  }, [watch('prismicZipFile')])
+  }
 
-  console.log(watch('prismicZipFile')); // watch input value by passing the name of it
+  console.log(watch('languages')); // watch input value by passing the name of it
+//   return (
+//     <Controller
+//     control={control}
+//     name="food"
+//     rules={{ required: "Please enter at least one food group." }}
+//     render={({
+//       field: { onChange, onBlur, value, name, ref },
+//       fieldState: { error }
+//     }) => (
+//       <FormControl py={4} isInvalid={!!error} id="food">
+//         <FormLabel>Food Groups</FormLabel>
 
+//         <Select
+//           isMulti
+//           name={name}
+//           ref={ref}
+//           onChange={onChange}
+//           onBlur={onBlur}
+//           value={value}
+//           options={foodGroups}
+//           placeholder="Food Groups"
+//           closeMenuOnSelect={false}
+//         />
+
+//         <FormErrorMessage>{error && error.message}</FormErrorMessage>
+//       </FormControl>
+//     )}
+//   />
+//   )
   return (
     /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
     <Form onSubmit={handleSubmit(onSubmit)}>
@@ -187,25 +271,29 @@ export default function App() {
 
       <Input defaultValue="" placeholder="Lokalise Token" type="password" {...register('lokaliseToken', { required: true })} />
 
+      <Select
+    isMulti
+    options={[
+      {
+        label: "I can't be removed",
+        value: "fixed",
+        isFixed: true,
+      },
+      {
+        label: "I can be removed",
+        value: "not-fixed",
+      },
+    ]}
+  />
+
+      {/* <Selector control={control} {...register('languages', { required: true })} name="languages"  /> */}
+
       <Input defaultValue="" placeholder="Filter" type="text" {...register('filter', { required: true })} />
 
       <Input type="file" {...register('prismicZipFile', { required: true })} />
-      {/* errors will return when field validation fails  */}
-      {formState.errors.exampleRequired && <span>This field is required</span>}
 
       <Input type="submit" />
     </Form>
   );
 }
 
-const Form = styled.form`
-    display: flex;
-    flex-direction: column;
-    max-width: 400px;
-`
-
-const Input = styled.input`
-    padding: 10px;
-    border-radius: 10px;
-    margin: 10px;
-`
