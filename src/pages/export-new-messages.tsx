@@ -12,6 +12,7 @@ import {
 import { Select } from "chakra-react-select"
 import styled from 'styled-components';
 import JSZip from 'jszip'
+import MultiSelect from "@khanacademy/react-multi-select";
 
 import {languageOptions} from '../helpers/index'
 
