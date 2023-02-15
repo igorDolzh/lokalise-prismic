@@ -212,6 +212,13 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
+"@khanacademy/react-multi-select@^0.3.3":
+  version "0.3.3"
+  resolved "https://registry.yarnpkg.com/@khanacademy/react-multi-select/-/react-multi-select-0.3.3.tgz#16230ff1bb48f40d978eae26cec30df4db450f5b"
+  integrity sha512-+RW+mzA+CFxhDxNrYYlKLo5SS50qB/xxS+nBWrYGvIWfBrtsmWMq2DdP8QH8Jrh7zqEyTjea/k8+RT/V/UxLMA==
+  dependencies:
+    fuzzy-match-utils "^1.2.0"
+
 "@lokalise/node-api@~8.0.2":
   version "8.0.2"
   resolved "https://registry.yarnpkg.com/@lokalise/node-api/-/node-api-8.0.2.tgz#480c501096580f8cf0926f7dd0cf502f3bd159fb"
@@ -1289,6 +1296,11 @@ functions-have-names@^1.2.2:
   version "1.2.3"
   resolved "https://registry.yarnpkg.com/functions-have-names/-/functions-have-names-1.2.3.tgz#0404fe4ee2ba2f607f0e0ec3c80bae994133b834"
   integrity sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==
+
+fuzzy-match-utils@^1.2.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/fuzzy-match-utils/-/fuzzy-match-utils-1.3.0.tgz#7debe2d6dab1dfde3d9526402c3e6b03fc1684f0"
+  integrity sha512-LR+kayRoS3O38TWSS8PDMF/xjhHcDGRUoMNZooTDMKU+NAjrobTMHWJnkdYrLpPRgsXxiqM/IbgthUR7JnkulA==
 
 get-intrinsic@^1.0.2, get-intrinsic@^1.1.1, get-intrinsic@^1.1.3:
   version "1.2.0"

@@ -2,6 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import styled from 'styled-components';
 import JSZip from 'jszip'
+import MultiSelect from "@khanacademy/react-multi-select";
 
 
 const messages = {}
