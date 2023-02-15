@@ -25,11 +25,6 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/apply-recent-translations": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/apply-recent-translations.js"
-    ],
     "/export-new-messages": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",

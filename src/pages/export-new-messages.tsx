@@ -4,6 +4,7 @@ import { useForm, useController, Controller } from 'react-hook-form';
 import styled from 'styled-components';
 import JSZip from 'jszip'
 import MultiSelect from "@khanacademy/react-multi-select";
+import { useLocalStorage} from '../helpers/useLocalStorage'
 
 import {languageOptions} from '../helpers/index'
 
@@ -173,17 +174,34 @@ async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, 
     sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages)
 }
 
-const defaultValues = { languages: [], prismicZipFile: "", filter: "", lokaliseTaskTitle: "", lokaliseTaskDescription: "", lokaliseToken: "" };
+export const usePersistForm = ({
+    value,
+    localStorageKey,
+  }) => {
+    React.useEffect(() => {
+      localStorage.setItem(localStorageKey, JSON.stringify(value));
+    }, [value, localStorageKey]);
+  
+    return;
+  };
+  
+
 export default function App() {
+    const defaultValues = { languages: [], prismicZipFile: "", filter: "", lokaliseTaskTitle: "", lokaliseTaskDescription: "", lokaliseToken: "" };
+    console.log(defaultValues)
     const form = useForm({defaultValues});
+
   const {
     register,
     handleSubmit,
     watch,
     formState,
     control,
-    setValue
+    setValue,
+    getValues
   } = form
+
+  const { lokaliseToken } = getValues()
   const onSubmit = (data: any) => {
     const { prismicZipFile, filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages } = form.getValues()
     for (var i = 0; i < prismicZipFile.length; i++) {
@@ -191,15 +209,27 @@ export default function App() {
     }
   }
 
+  
+  React.useEffect(() => {
+    const lokaliseToken = form.getValues().lokaliseToken
+    if (lokaliseToken) {
+        localStorage.setItem('lokaliseToken', lokaliseToken)
+    }
+  }, [watch('lokaliseToken')])
+
+  React.useEffect(() => {
+    setValue('lokaliseToken', localStorage.getItem('lokaliseToken') ?? '') 
+  },[])
+
   console.log(watch('languages')); // watch input value by passing the name of it
   return (
     /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
     <Form onSubmit={handleSubmit(onSubmit)}>
-      <Input defaultValue="" placeholder="Lokalise Task Title" type="text" {...register('lokaliseTaskTitle', { required: true })} />
+      <Input placeholder="Lokalise Task Title" type="text" {...register('lokaliseTaskTitle', { required: true })} />
 
-      <Input defaultValue="" placeholder="Lokalise Task Description" type="text" {...register('lokaliseTaskDescription', { required: true })} />
+      <Input placeholder="Lokalise Task Description" type="text" {...register('lokaliseTaskDescription', { required: true })} />
 
-      <Input defaultValue="" placeholder="Lokalise Token" type="password" {...register('lokaliseToken', { required: true })} />
+      <Input placeholder="Lokalise Token" type="password" {...register('lokaliseToken', { required: true })} />
 
       <MultiSelect
       options={languageOptions}
@@ -210,7 +240,7 @@ export default function App() {
 
       {/* <Selector control={control} {...register('languages', { required: true })} name="languages"  /> */}
 
-      <Input defaultValue="" placeholder="Filter" type="text" {...register('filter', { required: true })} />
+      <Input placeholder="Filter" type="text" {...register('filter', { required: true })} />
 
       <Input type="file" {...register('prismicZipFile', { required: true })} />
 
