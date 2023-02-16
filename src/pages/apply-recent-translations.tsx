@@ -3,9 +3,9 @@ import { useForm } from 'react-hook-form';
 import styled from 'styled-components';
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
-import MultiSelect from "@khanacademy/react-multi-select";
+import { Form, Input, StyledMultiSelect, Button } from '../styles/general'
 
-import {languageOptions} from '../helpers/index'
+import {languageOptions, LOCALISE_PROJECT_ID} from '../helpers/index'
 
 const messages = {}
 
@@ -322,13 +322,13 @@ function getVocab(vocabParsed: string, enMessagesParsed: string) {
 }
 
 
-async function handleFile(file: any, filter: string, langauges: string, lokaliseToken: string) {
-    const LOCALISE_PROJECT_ID = '302610005f102393819ad8.14734010'
+async function handleFile(file: any, filter: string, langauges: string[], lokaliseToken: string) {
+    
     console.log('Hello', file.name)
     const zip = await JSZip.loadAsync(file)
     const fileNames = Object.keys(zip.files)
     const filterArray = filter.split(',')
-    const languagesArray = langauges.split(',')
+    const languagesArray = langauges
     const enMessages = await getTranslations("en", lokaliseToken, LOCALISE_PROJECT_ID)
     var zipWrite = new JSZip();
     const infoForFiles = [] as any
@@ -390,13 +390,15 @@ async function handleFile(file: any, filter: string, langauges: string, lokalise
 
 
 export default function ApplyRecentTranslations() {
-    const form = useForm();
+  const defaultValues = { languages: [], prismicZipFile: "", filter: undefined, lokaliseTaskTitle: "", lokaliseTaskDescription: "", lokaliseToken: "" };
+    const form = useForm({defaultValues, shouldUseNativeValidation: true});
     const {
       register,
       handleSubmit,
       watch,
       formState,
-      setValue
+      setValue,
+      trigger
     } = form
     const onSubmit = (data: any) => {
         const { prismicZipFile, filter, languages, lokaliseToken } = form.getValues()
@@ -405,15 +407,29 @@ export default function ApplyRecentTranslations() {
         }
       }
 
+      React.useEffect(() => {
+        const lokaliseToken = form.getValues().lokaliseToken
+        if (lokaliseToken) {
+            localStorage.setItem('lokaliseToken', lokaliseToken)
+        }
+      }, [watch('lokaliseToken')])
+    
+      React.useEffect(() => {
+        setValue('lokaliseToken', localStorage.getItem('lokaliseToken') ?? '') 
+      },[])
+
+      React.useEffect(() => console.log(formState))
+      
+
     return (
         /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
         <Form onSubmit={handleSubmit(onSubmit)}>
-            <MultiSelect
-              options={languageOptions}
-              selected={watch('languages')}
-              onSelectedChanged={(selected: any) => setValue('languages', selected)}
-              {...register('languages', { required: true })}
-            />
+               <StyledMultiSelect
+                    options={languageOptions}
+                    selected={watch('languages')}
+                    onSelectedChanged={(selected: any) => setValue('languages', selected)}
+                    {...register('languages', { required: true })}
+                />
     
           <Input defaultValue="" placeholder="Filter" type="text" {...register('filter', { required: true })} />
 
@@ -421,21 +437,8 @@ export default function ApplyRecentTranslations() {
     
           <Input type="file" {...register('prismicZipFile', { required: true })} />
           {/* errors will return when field validation fails  */}
-          {formState.errors.exampleRequired && <span>This field is required</span>}
     
-          <Input type="submit" />
+          <Button type="submit" />
         </Form>
       );
 }
-
-const Form = styled.form`
-    display: flex;
-    flex-direction: column;
-    max-width: 400px;
-`
-
-const Input = styled.input`
-    padding: 10px;
-    border-radius: 10px;
-    margin: 10px;
-`

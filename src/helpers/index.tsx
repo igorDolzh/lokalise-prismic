@@ -17,18 +17,35 @@ export enum SupportedLanguage {
 
 
 export const languageOptions = [
-    {label: 'Dansk (da)', value: SupportedLanguage.DA},
-    {label: 'Svenska (sv)', value: SupportedLanguage.SV},
-    {label: 'English (en)', value: SupportedLanguage.EN},
-    {label: 'Deutsch (de)', value: SupportedLanguage.DE},
-    {label: 'Deutsch (Österreich) (de-AT)', value: SupportedLanguage.DE_AT},
-    {label: 'Español (es)', value: SupportedLanguage.ES},
-    {label: 'Français (fr)', value: SupportedLanguage.FR},
-    {label: 'Français (Belgique) (fr-BE)', value: SupportedLanguage.FR_BE},
-    {label: 'Suomi (fi)', value: SupportedLanguage.FI},
-    {label: 'Nederlands (nl)', value: SupportedLanguage.NL},
-    {label: 'Nederlands (België) (nl-BE)', value: SupportedLanguage.NL_BE},
-    {label: 'Português (pt)', value: SupportedLanguage.PT},
-    {label: 'Italiano (it)', value: SupportedLanguage.IT},
-    {label: 'Norsk (no)', value: SupportedLanguage.NO},
+    {label: 'Dansk (da)', id: SupportedLanguage.DA},
+    {label: 'Svenska (sv)', id: SupportedLanguage.SV},
+    {label: 'English (en)', id: SupportedLanguage.EN},
+    {label: 'Deutsch (de)', id: SupportedLanguage.DE},
+    {label: 'Deutsch (Österreich) (de-AT)', id: SupportedLanguage.DE_AT},
+    {label: 'Español (es)', id: SupportedLanguage.ES},
+    {label: 'Français (fr)', id: SupportedLanguage.FR},
+    {label: 'Français (Belgique) (fr-BE)', id: SupportedLanguage.FR_BE},
+    {label: 'Suomi (fi)', id: SupportedLanguage.FI},
+    {label: 'Nederlands (nl)', id: SupportedLanguage.NL},
+    {label: 'Nederlands (België) (nl-BE)', id: SupportedLanguage.NL_BE},
+    {label: 'Português (pt)', id: SupportedLanguage.PT},
+    {label: 'Italiano (it)', id: SupportedLanguage.IT},
+    {label: 'Norsk (no)', id: SupportedLanguage.NO},
 ]
+
+export async function getTranslations(language: string, token: string, projectId: string) {
+    const options = {
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+      };
+      
+    const response = await fetch(`/api/get-translations?language=${language}&token=${token}&projectId=${projectId}`, options)
+     const data = await response.json()
+     console.log('data',data)
+     return data.response?.[0]?.translations
+}
+
+export const LOCALISE_PROJECT_ID = '302610005f102393819ad8.14734010'

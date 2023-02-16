@@ -1,25 +1,57 @@
 import React from 'react';
 import { useForm, useController, Controller } from 'react-hook-form';
+import Autocomplete from '@mui/material/Autocomplete';
+import TextField from '@mui/material/TextField';
 
-import styled from 'styled-components';
+
 import JSZip from 'jszip'
-import MultiSelect from "@khanacademy/react-multi-select";
+
 import { useLocalStorage} from '../helpers/useLocalStorage'
+import { Form, Input, StyledMultiSelect, Wrapper, Side, Row, Col, WrapperColumn } from '../styles/general'
 
-import {languageOptions} from '../helpers/index'
+import {languageOptions, getTranslations, LOCALISE_PROJECT_ID} from '../helpers/index'
 
+
+function CountrySelect({ control, setValue }) {
   
-  const Form = styled.form`
-      display: flex;
-      flex-direction: column;
-      max-width: 400px;
-  `
-  
-  const Input = styled.input`
-      padding: 10px;
-      border-radius: 10px;
-      margin: 10px;
-  `
+    return (
+      <Controller
+      render={({ field: { onChange, value } }) => {
+        console.log('value, value', value)
+        return (
+        <Autocomplete
+            multiple
+            value={undefined}
+            options={languageOptions}
+            getOptionLabel={(option) => option.label}
+            onChange={(event, item) => {
+                console.log('onchange', item)
+                setValue(item)
+                onChange(item);
+              }}
+            renderInput={(params) => (
+                <TextField
+                    {...params}
+                    variant="standard"
+                    label="Multiple values"
+                    placeholder="Favorites"
+                />
+            )}
+            
+    />
+      )}}
+        // rules={{ required: true }}
+        onChange={([event, data]) => {
+          console.log('onChange', data)
+          return data;
+        }}
+        name="lang36346uages"
+        control={control}
+        defaultValue={languageOptions[0]}
+      />
+    );
+  }
+
 
 const messages = {}
 function processFile(rawdata: string, initialTag: string) {
@@ -76,10 +108,9 @@ function processFile(rawdata: string, initialTag: string) {
         iterateKeys(jsonFile, 0)
     }
 }
-async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string) {
+async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[]) {
     const messages = Object.keys(data)
     const KEYS_PER_REQUEST = 500 // The amount of keys in one request
-    const LOCALISE_PROJECT_ID = '302610005f102393819ad8.14734010'
     const timeTag = `time-${new Date().getTime()}`
 
 const keys = messages.filter((message) => Boolean(message)).map((message) => ({
@@ -109,7 +140,7 @@ async function createKeys(keys: any) {
             projectId: LOCALISE_PROJECT_ID,
             taskTitle: lokaliseTaskTitle,
             taskDescription: lokaliseTaskDescription,
-            languages: languages.split(',')
+            languages: languages
         })
       };
       
@@ -174,7 +205,7 @@ async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, 
     sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages)
 }
 
-async function checkNewMessages(file: any, filter: string) {
+async function checkNewMessages(file: any, filter: string, lokaliseToken: string) {
     console.log('Hello', file.name)
     const zip = await JSZip.loadAsync(file)
     const fileNames = Object.keys(zip.files)
@@ -191,7 +222,17 @@ async function checkNewMessages(file: any, filter: string) {
             }
         }
       }
+    const localiseMessagesResponse = await getTranslations('en', lokaliseToken, LOCALISE_PROJECT_ID)
+    const localiseMessages = Object.keys(localiseMessagesResponse)
+    const result = Object.keys(messages).map((message) => ({
+        message,
+        isInLocalise: localiseMessages.includes(message)
+    }))
+
     console.log(Object.keys(messages))
+    console.log(localiseMessages)
+
+    return result
 }
 
 export const usePersistForm = ({
@@ -209,7 +250,8 @@ export const usePersistForm = ({
 export default function App() {
     const defaultValues = { languages: [], prismicZipFile: "", filter: "", lokaliseTaskTitle: "", lokaliseTaskDescription: "", lokaliseToken: "" };
     console.log(defaultValues)
-    const form = useForm({defaultValues});
+    const form = useForm({defaultValues, shouldUseNativeValidation: true});
+    const [results, setResults] = React.useState<{message: string, isInLocalise: boolean}[]>([])
 
   const {
     register,
@@ -229,11 +271,10 @@ export default function App() {
     }
   }
   
-  const onCheck = () => {
-    const { prismicZipFile, filter } = form.getValues()
-    for (var i = 0; i < prismicZipFile.length; i++) {
-        checkNewMessages(prismicZipFile[i], filter);
-    }
+  const onCheck = async () => {
+    const { prismicZipFile, filter, lokaliseToken } = form.getValues()
+    const result = await checkNewMessages(prismicZipFile[0], filter, lokaliseToken);
+    setResults(result)
   }
 
   
@@ -249,36 +290,71 @@ export default function App() {
   },[])
 
   console.log(watch('languages')); // watch input value by passing the name of it
+  console.log(form.getValues())
   return (
     /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
     <Form onSubmit={handleSubmit(onSubmit)}>
-      <Input placeholder="Lokalise Task Title" type="text" {...register('lokaliseTaskTitle', { required: true })} />
+        <Wrapper>
+            <Side>
+                <Input type="file" {...register('prismicZipFile', { required: true })} />
 
-      <Input placeholder="Lokalise Task Description" type="text" {...register('lokaliseTaskDescription', { required: true })} />
+                <Input placeholder="Filter" type="text" {...register('filter', { required: true })} />
 
-      <Input placeholder="Lokalise Token" type="password" {...register('lokaliseToken', { required: true })} />
+                <Input placeholder="Lokalise Token" type="password" {...register('lokaliseToken', { required: true })} />
 
-      <MultiSelect
-      options={languageOptions}
-      selected={watch('languages')}
-      onSelectedChanged={(selected: any) => setValue('languages', selected)}
-      {...register('languages', { required: true })}
-    />
+                <Input type="button" value="New messages" onClick={() => {
+                onCheck()
+            }}/>
+            </Side>
+            <Side>
+                <Input placeholder="Lokalise Task Title" type="text" {...register('lokaliseTaskTitle', { required: true })} />
 
+                <Input placeholder="Lokalise Task Description" type="text" {...register('lokaliseTaskDescription', { required: true })} />
+                <CountrySelect control={control} setValue={(val) => setValue('languages', val)}/>
+                <Autocomplete
+                    multiple
+                    id="tags-standard"
+                    options={languageOptions}
+                    getOptionLabel={(option) => option.label}
+                    renderInput={(params) => (
+                    <TextField
+                        {...params}
+                        variant="standard"
+                        label="Multiple values"
+                        placeholder="Favorites"
+                    />
+                    )}
+                    {...register('languages', { required: true })}
+      />
+                {/* <StyledMultiSelect
+                    options={languageOptions}
+                    selected={watch('languages')}
+                    onSelectedChanged={(selected: any) => setValue('languages', selected)}
+                    {...register('languages', { required: true })}
+                /> */}
 
+                <Input type="submit" disabled={results.some(({isInLocalise}) => isInLocalise)}/>
+            </Side>
+        </Wrapper>
+        {results.length > 0 && 
+            <WrapperColumn>
+                <Row>
+                    <Col>Message</Col>
+                    <Col>Is inside Localise?</Col>
+                </Row>
+                {
+                    results.map((result) => (
+                        <Row key={result.message}>
+                            <Col>{result.message}</Col>
+                            <Col>{result.isInLocalise ? 'Yes' : 'No'}</Col>
+                        </Row>
+                    ))
+                }
+        </WrapperColumn>}
 
-      {/* <Selector control={control} {...register('languages', { required: true })} name="languages"  /> */}
-
-      <Input placeholder="Filter" type="text" {...register('filter', { required: true })} />
-
-      <Input type="file" {...register('prismicZipFile', { required: true })} />
-
-      <Input type="button" value="New messages" onClick={() => {
-        onCheck()
-      }}/>
-
-      <Input type="submit" />
     </Form>
   );
 }
+
+
 
