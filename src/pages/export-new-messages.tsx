@@ -1,56 +1,16 @@
 import React from 'react';
 import { useForm, useController, Controller } from 'react-hook-form';
-import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
 
 
 import JSZip from 'jszip'
 
 import { useLocalStorage} from '../helpers/useLocalStorage'
-import { Form, Input, StyledMultiSelect, Wrapper, Side, Row, Col, WrapperColumn } from '../styles/general'
+import { Form, Input, StyledMultiSelect, Wrapper, Side, Row, Col, WrapperColumn, Autocomplete } from '../styles/general'
 
 import {languageOptions, getTranslations, LOCALISE_PROJECT_ID} from '../helpers/index'
 
-
-function CountrySelect({ control, setValue }) {
-  
-    return (
-      <Controller
-      render={({ field: { onChange, value } }) => {
-        console.log('value, value', value)
-        return (
-        <Autocomplete
-            multiple
-            value={undefined}
-            options={languageOptions}
-            getOptionLabel={(option) => option.label}
-            onChange={(event, item) => {
-                console.log('onchange', item)
-                setValue(item)
-                onChange(item);
-              }}
-            renderInput={(params) => (
-                <TextField
-                    {...params}
-                    variant="standard"
-                    label="Multiple values"
-                    placeholder="Favorites"
-                />
-            )}
-            
-    />
-      )}}
-        // rules={{ required: true }}
-        onChange={([event, data]) => {
-          console.log('onChange', data)
-          return data;
-        }}
-        name="lang36346uages"
-        control={control}
-        defaultValue={languageOptions[0]}
-      />
-    );
-  }
 
 
 const messages = {}
@@ -184,7 +144,7 @@ run()
 }
 
 
-async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string) {
+async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[]) {
     console.log('Hello', file.name)
     const zip = await JSZip.loadAsync(file)
     const fileNames = Object.keys(zip.files)
@@ -263,11 +223,11 @@ export default function App() {
     getValues
   } = form
 
-  const { lokaliseToken } = getValues()
+  const { languages } = getValues()
   const onSubmit = (data: any) => {
     const { prismicZipFile, filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages } = form.getValues()
     for (var i = 0; i < prismicZipFile.length; i++) {
-        handleFile(prismicZipFile[i], filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages.join(','));
+        handleFile(prismicZipFile[i], filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages.map(({id}) => id));
     }
   }
   
@@ -298,42 +258,38 @@ export default function App() {
             <Side>
                 <Input type="file" {...register('prismicZipFile', { required: true })} />
 
-                <Input placeholder="Filter" type="text" {...register('filter', { required: true })} />
+                <Input label="Filter" type="text" {...register('filter', { required: true })} />
 
-                <Input placeholder="Lokalise Token" type="password" {...register('lokaliseToken', { required: true })} />
+                <Input label="Lokalise Token" type="password" {...register('lokaliseToken', { required: true })} />
 
-                <Input type="button" value="New messages" onClick={() => {
+                <Button type="button" variant="outlined" onClick={() => {
                 onCheck()
-            }}/>
+            }}>Check messages</Button>
             </Side>
             <Side>
-                <Input placeholder="Lokalise Task Title" type="text" {...register('lokaliseTaskTitle', { required: true })} />
+                <Input label="Lokalise Task Title" type="text" {...register('lokaliseTaskTitle', { required: true })} />
 
-                <Input placeholder="Lokalise Task Description" type="text" {...register('lokaliseTaskDescription', { required: true })} />
-                <CountrySelect control={control} setValue={(val) => setValue('languages', val)}/>
+                <Input label="Lokalise Task Description" type="text" {...register('lokaliseTaskDescription', { required: true })} />
                 <Autocomplete
                     multiple
+                    value={languages}
                     id="tags-standard"
                     options={languageOptions}
                     getOptionLabel={(option) => option.label}
+                    onChange={(event, val) => {
+                        console.log('onchange', val)
+                        setValue('languages', val)
+                      }}
                     renderInput={(params) => (
                     <TextField
                         {...params}
                         variant="standard"
-                        label="Multiple values"
-                        placeholder="Favorites"
+                        label="Languages"
                     />
                     )}
-                    {...register('languages', { required: true })}
       />
-                {/* <StyledMultiSelect
-                    options={languageOptions}
-                    selected={watch('languages')}
-                    onSelectedChanged={(selected: any) => setValue('languages', selected)}
-                    {...register('languages', { required: true })}
-                /> */}
 
-                <Input type="submit" disabled={results.some(({isInLocalise}) => isInLocalise)}/>
+                <Button type="submit" variant="outlined" disabled={!results.some(({isInLocalise}) => isInLocalise)}>Submit</Button>
             </Side>
         </Wrapper>
         {results.length > 0 && 

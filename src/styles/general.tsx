@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 import MultiSelect from "@khanacademy/react-multi-select";
+import TextField from '@mui/material/TextField';
+import MUIAutocomplete from '@mui/material/Autocomplete';
 
 export const Form = styled.form`
     > div.multi-select {
@@ -12,16 +14,12 @@ export const Form = styled.form`
     }
 `
 
-export const Input = styled.input`
-    padding: 10px;
-    border-radius: 6px;
-    margin: 10px;
-    border: 1px solid #cdcaca;
+export const Input = styled(TextField).attrs({
+    variant: "standard"
+})`
 `
 
-export const Button = styled(Input)`
-    cursor: pointer;
-    background: yellow;
+export const Autocomplete = styled(MUIAutocomplete)`
 `
 
 export const Wrapper = styled.div`
