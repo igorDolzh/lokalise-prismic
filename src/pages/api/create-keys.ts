@@ -78,49 +78,83 @@ export default async function handler(
       apiKey: body.token,
     });
     //await lokalise.keys().list({ project_id: body.projectId })
-    const response = await lokalise.keys().create(
-      {
-        keys: body.keys,
-      },
-      { project_id: body.projectId }
-    );
+    // const response = await lokalise.keys().create(
+    //   {
+    //     keys: body.keys,
+    //   },
+    //   { project_id: body.projectId }
+    // );
+    console.log("body.keys", body.keys);
+    console.log("body.tags", body.tags);
+    let process = await lokalise.files().upload(body.projectId, {
+      data: Buffer.from(JSON.stringify(body.keys)).toString("base64"),
+      filename: "from-program.json",
+      lang_iso: "en",
+      tags: body.tags.split(","),
+      replace_modified: true,
+      use_automations: true,
+      convert_placeholders: false,
+      apply_tm: true,
+      detect_icu_plurals: false,
+      tag_inserted_keys: true,
+      tag_skipped_keys: true,
+      tag_updated_keys: true,
+    });
 
-    //console.log("response", JSON.stringify(response));
-    console.log("response?.items.length", response?.items.length);
-    if (response?.items?.length > 0) {
-      const assigneeIdObject = await getAssigneeIdObject(
-        lokalise,
-        body.languages,
-        body.projectId
-      );
-      console.log("assigneeIdObject", JSON.stringify(assigneeIdObject));
-      console.log(
-        "response?.items?.map((item) => item.key_id)",
-        JSON.stringify(response?.items?.map((item) => item.key_id))
-      );
-      for (const lang of body.languages) {
-        const users = assigneeIdObject[lang];
-        if (users) {
-          const taskResponse = await lokalise.tasks().create(
-            {
-              title: `${body.taskTitle}[${new Date().getTime()}]`,
-              description: body.taskDescription,
-              keys: response?.items?.map((item) => item.key_id),
-              languages: [
-                {
-                  language_iso: lang,
-                  users: users,
-                },
-              ],
-            },
-            { project_id: body.projectId }
+    let inteval = await setInterval(async () => {
+      console.log("process", process);
+      if (process.status === "finished") {
+        let taskResponse;
+        clearInterval(inteval);
+
+        const keysForTask = await lokalise.keys().list({
+          filter_tags: body.filter,
+          project_id: body.projectId,
+        });
+        //console.log("response", JSON.stringify(response));
+        //console.log("response?.items.length", response?.items.length);
+        console.log("keysForTask?.items?.length", keysForTask?.items?.length);
+        if (keysForTask?.items?.length > 0) {
+          const assigneeIdObject = await getAssigneeIdObject(
+            lokalise,
+            body.languages,
+            body.projectId
           );
-          //console.log(taskResponse);
+          console.log("assigneeIdObject", JSON.stringify(assigneeIdObject));
+          console.log(
+            "response?.items?.map((item) => item.key_id)",
+            JSON.stringify(keysForTask?.items?.map((item) => item.key_id))
+          );
+          for (const lang of body.languages) {
+            const users = assigneeIdObject[lang];
+            if (users) {
+              taskResponse = await lokalise.tasks().create(
+                {
+                  title: `${body.taskTitle}[${new Date().getTime()}]`,
+                  description: body.taskDescription,
+                  keys: keysForTask?.items?.map((item) => item.key_id),
+                  languages: [
+                    {
+                      language_iso: lang,
+                      users: users,
+                    },
+                  ],
+                },
+                { project_id: body.projectId }
+              );
+              //console.log(taskResponse);
+            }
+          }
         }
-      }
-    }
 
-    res.status(200).json({ response: response });
+        res.status(200).json({ response: taskResponse });
+      } else {
+        //@ts-ignore
+        process = await lokalise.queuedProcesses().get(process.process_id, {
+          project_id: body.projectId,
+        });
+      }
+    }, 1000);
   } catch (e) {
     res.status(500).json({ response: e });
   }

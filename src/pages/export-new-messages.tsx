@@ -68,24 +68,33 @@ function processFile(rawdata: string, initialTag: string) {
         iterateKeys(jsonFile, 0)
     }
 }
-async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[]) {
+async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[], filter: string) {
     const messages = Object.keys(data)
+    const keys = {}
     const KEYS_PER_REQUEST = 500 // The amount of keys in one request
     const timeTag = `time-${new Date().getTime()}`
+    const tags = [...data[messages[0]], timeTag].join(',')
+    console.log("tags", tags)
 
-const keys = messages.filter((message) => Boolean(message)).map((message) => ({
-    key_name: message,
-    tags: [...data[message], timeTag],
-    platforms: [
-        "web"
-    ],
-    translations: [
-        {
-            language_iso: "en",
-            translation: message
-        }
-    ]
-}))
+    // const keys = messages.filter((message) => Boolean(message)).map((message) => ({
+    //     key_name: message,
+    //     tags: [...data[message], timeTag],
+    //     platforms: [
+    //         "web"
+    //     ],
+    //     translations: [
+    //         {
+    //             language_iso: "en",
+    //             translation: message
+    //         }
+    //     ]
+    // }))
+
+    messages.forEach((message) => {
+        keys[message] = message
+    })
+
+    console.log('sendToLokalise sendToLokalise', Object.keys(keys).length)
 
 async function createKeys(keys: any) {
     const options = {
@@ -100,7 +109,9 @@ async function createKeys(keys: any) {
             projectId: LOCALISE_PROJECT_ID,
             taskTitle: lokaliseTaskTitle,
             taskDescription: lokaliseTaskDescription,
-            languages: languages
+            languages: languages,
+            filter: filter,
+            tags: tags
         })
       };
       
@@ -113,11 +124,13 @@ async function createKeys(keys: any) {
 
 
 async function pushNewKeys() {
-    const steps = Math.ceil(keys.length / KEYS_PER_REQUEST + 1)
-    for (let i=0;i<steps;i++) {
-        await createKeys(keys.slice(i*KEYS_PER_REQUEST, (i+1)*KEYS_PER_REQUEST))
-        console.log(`New keys successfully pushed! ${i}/${steps}`)
-    }
+    //const steps = Math.ceil(keys.length / KEYS_PER_REQUEST)
+    // for (let i=0;i<steps;i++) {
+        
+    // }
+
+    await createKeys(keys)
+    console.log(`New keys successfully pushed!`)
 }
 
 // async function updateTagsForExisted() {
@@ -161,8 +174,8 @@ async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, 
             }
         }
       }
-    console.log(messages)
-    sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages)
+    console.log('messages', Object.keys(messages))
+    sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages, filter)
 }
 
 async function checkNewMessages(file: any, filter: string, lokaliseToken: string) {
