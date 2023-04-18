@@ -2,12 +2,14 @@ import React from 'react';
 import { useForm, useController, Controller } from 'react-hook-form';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
 
 
 import JSZip from 'jszip'
 
 import { useLocalStorage} from '../helpers/useLocalStorage'
-import { Form, Input, StyledMultiSelect, Wrapper, Side, Row, Col, WrapperColumn, Autocomplete } from '../styles/general'
+import { Form, Input, StyledMultiSelect, Wrapper, Side, Row, Col, WrapperColumn, Autocomplete,  } from '../styles/general'
 
 import {languageOptions, getTranslations, LOCALISE_PROJECT_ID} from '../helpers/index'
 
@@ -68,7 +70,7 @@ function processFile(rawdata: string, initialTag: string) {
         iterateKeys(jsonFile, 0)
     }
 }
-async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[], filter: string) {
+async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[], filter: string, isLokaliseTaskNeeded: boolean) {
     const messages = Object.keys(data)
     const keys = {}
     const KEYS_PER_REQUEST = 500 // The amount of keys in one request
@@ -111,7 +113,8 @@ async function createKeys(keys: any) {
             taskDescription: lokaliseTaskDescription,
             languages: languages,
             filter: filter,
-            tags: tags
+            tags: tags,
+            isLokaliseTaskNeeded: isLokaliseTaskNeeded
         })
       };
       
@@ -157,7 +160,7 @@ run()
 }
 
 
-async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[]) {
+async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[], isLokaliseTaskNeeded: boolean) {
     console.log('Hello', file.name)
     const zip = await JSZip.loadAsync(file)
     const fileNames = Object.keys(zip.files)
@@ -175,7 +178,7 @@ async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, 
         }
       }
     console.log('messages', Object.keys(messages))
-    sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages, filter)
+    sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages, filter, isLokaliseTaskNeeded)
 }
 
 async function checkNewMessages(file: any, filter: string, lokaliseToken: string) {
@@ -221,7 +224,7 @@ export const usePersistForm = ({
   
 
 export default function App() {
-    const defaultValues = { languages: [], prismicZipFile: "", filter: "", lokaliseTaskTitle: "", lokaliseTaskDescription: "", lokaliseToken: "" };
+    const defaultValues = { languages: [], prismicZipFile: "", filter: "", lokaliseTaskTitle: "", lokaliseTaskDescription: "", lokaliseToken: "", isLokaliseTaskNeeded: true };
     console.log(defaultValues)
     const form = useForm({defaultValues, shouldUseNativeValidation: true});
     const [results, setResults] = React.useState<{message: string, isInLocalise: boolean}[]>([])
@@ -236,11 +239,11 @@ export default function App() {
     getValues
   } = form
 
-  const { languages } = getValues()
+  const { languages, isLokaliseTaskNeeded } = getValues()
   const onSubmit = (data: any) => {
-    const { prismicZipFile, filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages } = form.getValues()
+    const { prismicZipFile, filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages, isLokaliseTaskNeeded } = form.getValues()
     for (var i = 0; i < prismicZipFile.length; i++) {
-        handleFile(prismicZipFile[i], filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages.map(({id}) => id));
+        handleFile(prismicZipFile[i], filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages.map(({id}) => id), isLokaliseTaskNeeded);
     }
   }
   
@@ -262,7 +265,8 @@ export default function App() {
     setValue('lokaliseToken', localStorage.getItem('lokaliseToken') ?? '') 
   },[])
 
-  console.log(watch('languages')); // watch input value by passing the name of it
+  console.log(watch('isLokaliseTaskNeeded')); // watch input value by passing the name of it
+  console.log(watch('languages'))
   console.log(form.getValues())
   return (
     /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
@@ -280,6 +284,15 @@ export default function App() {
             }}>Check messages</Button>
             </Side>
             <Side>
+            <FormControlLabel
+                    label="No need for Lokalise task"
+                    control={
+                        <Checkbox onChange={(e) => {
+                            console.log('e.target.checked', e.target.checked)
+                            setValue('isLokaliseTaskNeeded', Boolean(e.target.checked))
+                        }} />
+                    }
+                />
                 <Input label="Lokalise Task Title" type="text" {...register('lokaliseTaskTitle', { required: true })} />
 
                 <Input label="Lokalise Task Description" type="text" {...register('lokaliseTaskDescription', { required: true })} />

@@ -103,7 +103,10 @@ export default async function handler(
 
     let inteval = await setInterval(async () => {
       console.log("process", process);
-      if (process.status === "finished") {
+      if (
+        process.status === "finished" &&
+        Boolean(JSON.parse(body.isLokaliseTaskNeeded))
+      ) {
         let taskResponse;
         clearInterval(inteval);
 
