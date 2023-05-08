@@ -1,5 +1,5 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox'
@@ -12,8 +12,7 @@ import { Form, Input, Wrapper, Side, Row, Col, WrapperColumn, Autocomplete } fro
 
 import {languageOptions, getTranslations, LOCALISE_PROJECT_ID, getMessagesWithTagsFromArchive} from '../helpers/index'
 
-
-async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[], filter: string, isLokaliseTaskNeeded: boolean) {
+async function sendToLokalise({data, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages, filter, isLokaliseTaskNeeded}: {data: {[key: string]: string[]},lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[], filter: string, isLokaliseTaskNeeded: boolean}) {
     const messages = Object.keys(data)
     const keys: {[key: string] : string} = {}
     const timeTag = `time-${new Date().getTime()}`
@@ -24,49 +23,39 @@ async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTask
         keys[message] = message
     })
 
-    console.log('sendToLokalise sendToLokalise', Object.keys(keys).length)
+    console.log('sendToLokalise', Object.keys(keys).length)
 
-async function createKeys(keys: any) {
-    const options = {
-        method: 'POST',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-            keys: keys,
-            token: lokaliseToken,
-            projectId: LOCALISE_PROJECT_ID,
-            taskTitle: lokaliseTaskTitle,
-            taskDescription: lokaliseTaskDescription,
-            languages: languages,
-            filter: filter,
-            tags: tags,
-            isLokaliseTaskNeeded: isLokaliseTaskNeeded
-        })
-      };
-      
-    const response = await fetch(`/api/create-keys`, options)
-     const data = await response.json()
-     console.log(data)
+    async function createKeys(keys: any) {
+        const options = {
+            method: 'POST',
+            headers: {
+            accept: 'application/json',
+            'content-type': 'application/json',
+            },
+            body: JSON.stringify({
+                keys: keys,
+                token: lokaliseToken,
+                projectId: LOCALISE_PROJECT_ID,
+                taskTitle: lokaliseTaskTitle,
+                taskDescription: lokaliseTaskDescription,
+                languages: languages,
+                filter: filter,
+                tags: tags,
+                isLokaliseTaskNeeded: isLokaliseTaskNeeded
+            })
+        };
+        
+        const response = await fetch(`/api/create-keys`, options)
+        const data = await response.json()
+        console.log(data)
+    }
 
-
-}
-
-
-async function pushNewKeys() {
     await createKeys(keys)
     console.log(`New keys successfully pushed!`)
 }
-async function run() {
-    await pushNewKeys()
-}
-
-run()
-}
 
 
-async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[], isLokaliseTaskNeeded: boolean) {
+async function onFileSubmit({file, filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages, isLokaliseTaskNeeded}: {file: any, filter: string, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[], isLokaliseTaskNeeded: boolean}) {
     let messages: {[key: string] : string[]} = {}
     const zip = await JSZip.loadAsync(file)
     const fileNames = Object.keys(zip.files)
@@ -79,15 +68,14 @@ async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, 
         
             if (data) {
                 messages = getMessagesWithTagsFromArchive(data, fileName)
-                //console.log(file)
             }
         }
       }
 
-    sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages, filter, isLokaliseTaskNeeded)
+    sendToLokalise({data:messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages, filter, isLokaliseTaskNeeded})
 }
 
-async function checkNewMessages(file: any, filter: string, lokaliseToken: string) {
+async function getStatusForMessageByFilter({file, filter, lokaliseToken}: {file: any, filter: string, lokaliseToken: string}) {
     let messages: {[key: string] : string[]} = {}
     const zip = await JSZip.loadAsync(file)
     const fileNames = Object.keys(zip.files)
@@ -100,7 +88,6 @@ async function checkNewMessages(file: any, filter: string, lokaliseToken: string
         
             if (data) {
                 messages = getMessagesWithTagsFromArchive(data, fileName)
-                //console.log(file)
             }
         }
       }
@@ -110,9 +97,6 @@ async function checkNewMessages(file: any, filter: string, lokaliseToken: string
         message,
         isInLocalise: localiseMessages.includes(message)
     }))
-
-    console.log(Object.keys(messages))
-    console.log(localiseMessages)
 
     return result
 }
@@ -149,13 +133,13 @@ export default function App() {
   const onSubmit = (data: any) => {
     const { prismicZipFile, filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages, isLokaliseTaskNeeded } = form.getValues()
     for (var i = 0; i < prismicZipFile.length; i++) {
-        handleFile(prismicZipFile[i], filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages.map(({id}) => id), isLokaliseTaskNeeded);
+        onFileSubmit({file: prismicZipFile[i], filter, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages: languages.map(({id}) => id), isLokaliseTaskNeeded});
     }
   }
   
   const onCheck = async () => {
     const { prismicZipFile, filter, lokaliseToken } = form.getValues()
-    const result = await checkNewMessages(prismicZipFile[0], filter, lokaliseToken);
+    const result = await getStatusForMessageByFilter({file:prismicZipFile[0], filter, lokaliseToken});
     setResults(result)
   }
 
@@ -172,7 +156,7 @@ export default function App() {
   },[])
 
   console.log(watch('isLokaliseTaskNeeded')); // watch input value by passing the name of it
-  console.log(watch('languages'))
+  //console.log(watch('languages'))
   console.log(form.getValues())
   return (
     /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
@@ -202,24 +186,35 @@ export default function App() {
                 <Input label="Lokalise Task Title" type="text" {...register('lokaliseTaskTitle', { required: true })} />
 
                 <Input label="Lokalise Task Description" type="text" {...register('lokaliseTaskDescription', { required: true })} />
-                <Autocomplete
-                    multiple
-                    value={languages}
-                    id="tags-standard"
-                    options={languageOptions.filter(({id}) => !languages.map(({id}) => id).includes(id))}
-                    getOptionLabel={(option) => option.label}
-                    onChange={(event, val) => {
-                        console.log('onchange', val)
-                        setValue('languages', val)
-                      }}
-                    renderInput={(params) => (
-                    <TextField
-                        {...params}
-                        variant="standard"
-                        label="Languages"
+
+                <Controller
+                        name="languages"
+                        control={control}
+                        render={({ field: { onChange, value } }) => (
+                            <Autocomplete
+                                    multiple
+                                    
+                                    value={value || null}
+                                    id="tags-standard"
+                                    options={languageOptions.filter(({id}) => !value.map(({id}) => id).includes(id))}
+                                    getOptionLabel={(option) => option.label}
+                                    onChange={(event, val) => {
+                                        console.log('onchange', val)
+                                        onChange(val);
+                                        console.log(form.getValues())
+                                        //setValue('languages', val)
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            variant="standard"
+                                            label="Languages"
+                                        />
+                                    )}
+                              />
+                          )}
+                        
                     />
-                    )}
-      />
 
                 <Button type="submit" variant="outlined" disabled={!results.some(({isInLocalise}) => isInLocalise)}>Submit</Button>
             </Side>
