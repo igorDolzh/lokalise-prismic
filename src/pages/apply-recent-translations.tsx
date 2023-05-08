@@ -1,44 +1,11 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import styled from 'styled-components';
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
-import { Form, Input, StyledMultiSelect, Button } from '../styles/general'
+import { Form, Input, StyledMultiSelect } from '../styles/general'
+import Button from '@mui/material/Button';
 
 import {languageOptions, LOCALISE_PROJECT_ID} from '../helpers/index'
-
-const messages = {}
-
-const UPDATE_OR_CREATE = "UPDATE"; // "CREATE" OR "UPDATE"
-const FOLDER_WITH_PRISMIC_FILES = "";
-const OUTPUT_FOLDER_WITH_TRANSLATION_FILES = "";
-const SOURCE_FILE_WITH_TRANSLATIONS = "";
-const EN_SOURCE_FILE = "";
-const LOCALE = "fi-fi";
-const EXTRA_CONDITIONS_FUNCTION = () => {
-  return true;
-};
-
-// const languages = {
-//     "sv-se": "sv",
-//     "en-gb": "en",
-//     "da-dk": "da",
-//     "de-de": "de",
-//     "es-es": "es",
-//     "en-ie": "en", 
-//     'fi-fi': 'fi',
-//     'de-at': "de-AT",
-//     'fr-be': 'fr-BE',
-//     'nl-be': 'nl-BE',
-//     'et-ee': 'en',
-//     'it-it': 'it',
-//     'pt-pt': 'pt',
-//     'en-lu': 'en',
-//     'no-no': 'no',
-//     'fr-fr': 'fr',
-//     'nl-nl': 'nl'
-
-// }
 
 const locales = [
     {
@@ -364,7 +331,7 @@ async function handleFile(file: any, filter: string, langauges: string[], lokali
                 console.log('translatedFileName', translatedFileName, 'prismicLocale', prismicLocale)
                 const isCreate = !translatedFileName
                 const currentFileName = translatedFileName ?? file
-                const data = await zip.file(currentFileName)?.async("string")
+                const data = await zip.file(file ?? currentFileName)?.async("string")
                 
             
                 if (data && prismicLocale) {
@@ -390,7 +357,7 @@ async function handleFile(file: any, filter: string, langauges: string[], lokali
 
 
 export default function ApplyRecentTranslations() {
-  const defaultValues = { languages: [], prismicZipFile: "", filter: undefined, lokaliseTaskTitle: "", lokaliseTaskDescription: "", lokaliseToken: "" };
+  const defaultValues = { languages: [], prismicZipFile: "", filter: '', lokaliseTaskTitle: "", lokaliseTaskDescription: "", lokaliseToken: "" };
     const form = useForm({defaultValues, shouldUseNativeValidation: true});
     const {
       register,
@@ -403,7 +370,7 @@ export default function ApplyRecentTranslations() {
     const onSubmit = (data: any) => {
         const { prismicZipFile, filter, languages, lokaliseToken } = form.getValues()
         for (var i = 0; i < prismicZipFile.length; i++) {
-            handleFile(prismicZipFile[i], filter, languages, lokaliseToken);
+            handleFile(prismicZipFile[i], filter, ['de', 'es', 'sv', 'da', 'nl', 'fr', 'fi', 'it', 'pt', 'no'], lokaliseToken);
         }
       }
 
@@ -438,7 +405,7 @@ export default function ApplyRecentTranslations() {
           <Input type="file" {...register('prismicZipFile', { required: true })} />
           {/* errors will return when field validation fails  */}
     
-          <Button type="submit" />
+          <Button type="submit" variant="outlined">Submit</Button>
         </Form>
       );
 }

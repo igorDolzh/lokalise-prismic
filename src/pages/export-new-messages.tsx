@@ -8,8 +8,7 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 
 import JSZip from 'jszip'
 
-import { useLocalStorage} from '../helpers/useLocalStorage'
-import { Form, Input, StyledMultiSelect, Wrapper, Side, Row, Col, WrapperColumn, Autocomplete,  } from '../styles/general'
+import { Form, Input, Wrapper, Side, Row, Col, WrapperColumn, Autocomplete } from '../styles/general'
 
 import {languageOptions, getTranslations, LOCALISE_PROJECT_ID} from '../helpers/index'
 
@@ -78,20 +77,6 @@ async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTask
     const tags = [...data[messages[0]], timeTag].join(',')
     console.log("tags", tags)
 
-    // const keys = messages.filter((message) => Boolean(message)).map((message) => ({
-    //     key_name: message,
-    //     tags: [...data[message], timeTag],
-    //     platforms: [
-    //         "web"
-    //     ],
-    //     translations: [
-    //         {
-    //             language_iso: "en",
-    //             translation: message
-    //         }
-    //     ]
-    // }))
-
     messages.forEach((message) => {
         keys[message] = message
     })
@@ -127,33 +112,11 @@ async function createKeys(keys: any) {
 
 
 async function pushNewKeys() {
-    //const steps = Math.ceil(keys.length / KEYS_PER_REQUEST)
-    // for (let i=0;i<steps;i++) {
-        
-    // }
-
     await createKeys(keys)
     console.log(`New keys successfully pushed!`)
 }
-
-// async function updateTagsForExisted() {
-//     const listOfTheKeys = await api.keys.list(LOCALISE_PROJECT_ID, {limit: 5000})
-//     const keysForUpdate = listOfTheKeys.keys
-//         .filter(({key_name}) => messages.includes(key_name.web))
-//         .map(({key_id, key_name}) => ({
-//             key_id: key_id,
-//             tags: data[key_name.web]
-//         }))
-//     const steps = Math.ceil(keysForUpdate.length / KEYS_PER_REQUEST + 1)
-//     for (let i=1;i<steps;i++) {
-//         await api.keys.updateMany(LOCALISE_PROJECT_ID, {keys: keysForUpdate.slice(i*KEYS_PER_REQUEST, (i+1)*KEYS_PER_REQUEST)})
-//         console.log(`Tags are successfully updated!  ${i}/${steps}`)
-//     }  
-// }
 async function run() {
     await pushNewKeys()
-   // await updateTagsForExisted()
-   // await createTask()
 }
 
 run()
@@ -300,7 +263,7 @@ export default function App() {
                     multiple
                     value={languages}
                     id="tags-standard"
-                    options={languageOptions}
+                    options={languageOptions.filter(({id}) => !languages.map(({id}) => id).includes(id))}
                     getOptionLabel={(option) => option.label}
                     onChange={(event, val) => {
                         console.log('onchange', val)
