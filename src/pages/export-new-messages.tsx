@@ -1,5 +1,5 @@
 import React from 'react';
-import { useForm, useController, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox'
@@ -10,69 +10,12 @@ import JSZip from 'jszip'
 
 import { Form, Input, Wrapper, Side, Row, Col, WrapperColumn, Autocomplete } from '../styles/general'
 
-import {languageOptions, getTranslations, LOCALISE_PROJECT_ID} from '../helpers/index'
+import {languageOptions, getTranslations, LOCALISE_PROJECT_ID, getMessagesWithTagsFromArchive} from '../helpers/index'
 
 
-
-const messages = {}
-function processFile(rawdata: string, initialTag: string) {
-    const jsonFile = JSON.parse(rawdata);
-    const forbiddenKeys = ['id', 'grouplang', 'program_name', 'licence_type']
-    const tags = [...jsonFile.tags, initialTag]
-    if (jsonFile.type) {
-        tags.push(jsonFile.type)
-    }
-    if (jsonFile.uid) {
-        tags.push(jsonFile.uid)
-    } else if (jsonFile.prismic_title && (typeof jsonFile.prismic_title === 'string' || jsonFile.prismic_title instanceof String)) {
-        tags.push(jsonFile.prismic_title.slice(0, 25))
-    } else if (jsonFile.title && (typeof jsonFile.title === 'string' || jsonFile.title instanceof String) ) {
-        tags.push(jsonFile.title.slice(0, 25))
-    } else if (jsonFile.category && (typeof jsonFile.category === 'string' || jsonFile.category instanceof String)) {
-        tags.push(jsonFile.category.slice(0, 25))
-    } else if (jsonFile.name && (typeof jsonFile.name === 'string' || jsonFile.name instanceof String)) {
-        tags.push(jsonFile.name.slice(0, 25))
-    } else if (jsonFile.platform && (typeof jsonFile.platform === 'string' || jsonFile.platform instanceof String)) {
-        tags.push(jsonFile.platform.slice(0, 25))
-    }
-
-    
-    const isLangGB = jsonFile.lang === "en-gb"
-
-    
-    function iterateKeys(obj: any, k: any) {
-        const keys = Object.keys(obj)
-        keys.forEach((key) => {
-            const value = obj[key]
-            if (typeof value === 'object' &&
-            value !== null) {
-                iterateKeys(value, ++k)
-                return
-            }
-            if ((typeof value === 'string' || value instanceof String)) {
-                const isCapitalLetter = value.match(/[A-Z]/)
-                const isLink = value.match(/:\/\//)
-                const isKeyForbidden = forbiddenKeys.includes(key)
-                const isKeyContainText = key.includes("text")
-                if ((Boolean(isCapitalLetter) || isKeyContainText) && !isLink && !isKeyForbidden && value) {
-                    if (!messages[value.trim()]) {
-                        messages[value.trim()] = tags
-                    } else {
-                        messages[value.trim()] = [...new Set([...messages[value.trim()], ...tags])]
-                    }                    
-                }
-            }
-        })
-    }
-    
-    if (isLangGB) {
-        iterateKeys(jsonFile, 0)
-    }
-}
 async function sendToLokalise(data: any, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[], filter: string, isLokaliseTaskNeeded: boolean) {
     const messages = Object.keys(data)
-    const keys = {}
-    const KEYS_PER_REQUEST = 500 // The amount of keys in one request
+    const keys: {[key: string] : string} = {}
     const timeTag = `time-${new Date().getTime()}`
     const tags = [...data[messages[0]], timeTag].join(',')
     console.log("tags", tags)
@@ -124,7 +67,7 @@ run()
 
 
 async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, lokaliseTaskDescription: string, lokaliseToken: string, languages: string[], isLokaliseTaskNeeded: boolean) {
-    console.log('Hello', file.name)
+    let messages: {[key: string] : string[]} = {}
     const zip = await JSZip.loadAsync(file)
     const fileNames = Object.keys(zip.files)
     const filterArray = filter.split(',')
@@ -135,17 +78,17 @@ async function handleFile(file: any, filter: string, lokaliseTaskTitle: string, 
             const data = await zip.file(file)?.async("string")
         
             if (data) {
-                processFile(data, fileName)
+                messages = getMessagesWithTagsFromArchive(data, fileName)
                 //console.log(file)
             }
         }
       }
-    console.log('messages', Object.keys(messages))
+
     sendToLokalise(messages, lokaliseTaskTitle, lokaliseTaskDescription, lokaliseToken, languages, filter, isLokaliseTaskNeeded)
 }
 
 async function checkNewMessages(file: any, filter: string, lokaliseToken: string) {
-    console.log('Hello', file.name)
+    let messages: {[key: string] : string[]} = {}
     const zip = await JSZip.loadAsync(file)
     const fileNames = Object.keys(zip.files)
     const filterArray = filter.split(',')
@@ -156,7 +99,7 @@ async function checkNewMessages(file: any, filter: string, lokaliseToken: string
             const data = await zip.file(file)?.async("string")
         
             if (data) {
-                processFile(data, fileName)
+                messages = getMessagesWithTagsFromArchive(data, fileName)
                 //console.log(file)
             }
         }
@@ -177,7 +120,7 @@ async function checkNewMessages(file: any, filter: string, lokaliseToken: string
 export const usePersistForm = ({
     value,
     localStorageKey,
-  }) => {
+  }: {value: string, localStorageKey: string}) => {
     React.useEffect(() => {
       localStorage.setItem(localStorageKey, JSON.stringify(value));
     }, [value, localStorageKey]);

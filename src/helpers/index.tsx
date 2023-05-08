@@ -49,3 +49,61 @@ export async function getTranslations(language: string, token: string, projectId
 }
 
 export const LOCALISE_PROJECT_ID = '302610005f102393819ad8.14734010'
+
+export function getMessagesWithTagsFromArchive(rawdata: string, initialTag: string) {
+  const messages: {[key: string]: string[]} = {}
+  const jsonFile = JSON.parse(rawdata);
+  const forbiddenKeys = ['id', 'grouplang', 'program_name', 'licence_type']
+  const tags: string[] = [...jsonFile.tags, initialTag]
+  if (jsonFile.type) {
+      tags.push(jsonFile.type)
+  }
+  if (jsonFile.uid) {
+      tags.push(jsonFile.uid)
+  } else if (jsonFile.prismic_title && (typeof jsonFile.prismic_title === 'string' || jsonFile.prismic_title instanceof String)) {
+      tags.push(jsonFile.prismic_title.slice(0, 25))
+  } else if (jsonFile.title && (typeof jsonFile.title === 'string' || jsonFile.title instanceof String) ) {
+      tags.push(jsonFile.title.slice(0, 25))
+  } else if (jsonFile.category && (typeof jsonFile.category === 'string' || jsonFile.category instanceof String)) {
+      tags.push(jsonFile.category.slice(0, 25))
+  } else if (jsonFile.name && (typeof jsonFile.name === 'string' || jsonFile.name instanceof String)) {
+      tags.push(jsonFile.name.slice(0, 25))
+  } else if (jsonFile.platform && (typeof jsonFile.platform === 'string' || jsonFile.platform instanceof String)) {
+      tags.push(jsonFile.platform.slice(0, 25))
+  }
+
+  
+  const isLangGB = jsonFile.lang === "en-gb"
+
+  
+  function iterateKeys(obj: any, k: any) {
+      const keys = Object.keys(obj)
+      keys.forEach((key) => {
+          const value = obj[key]
+          if (typeof value === 'object' &&
+          value !== null) {
+              iterateKeys(value, ++k)
+              return
+          }
+          if ((typeof value === 'string' || value instanceof String)) {
+              const isCapitalLetter = value.match(/[A-Z]/)
+              const isLink = value.match(/:\/\//)
+              const isKeyForbidden = forbiddenKeys.includes(key)
+              const isKeyContainText = key.includes("text")
+              if ((Boolean(isCapitalLetter) || isKeyContainText) && !isLink && !isKeyForbidden && value) {
+                  if (!messages[value.trim()]) {
+                      messages[value.trim()] = tags
+                  } else {
+                      messages[value.trim()] = [...new Set([...messages[value.trim()], ...tags])]
+                  }                    
+              }
+          }
+      })
+  }
+  
+  if (isLangGB) {
+      iterateKeys(jsonFile, 0)
+  }
+
+  return messages
+}
