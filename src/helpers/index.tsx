@@ -1,3 +1,5 @@
+import fetch from 'node-fetch'
+
 export enum SupportedLanguage {
   DA = 'da',
   SV = 'sv',
@@ -45,8 +47,11 @@ export async function getTranslations(
     },
   }
 
+  const serverURL =
+    process.env.NODE_ENV === 'test' ? 'https://localhost:123' : ''
+
   const response = await fetch(
-    `/api/get-translations?language=${language}&token=${token}&projectId=${projectId}`,
+    `${serverURL}/api/get-translations?language=${language}&token=${token}&projectId=${projectId}`,
     options,
   )
   const data = await response.json()

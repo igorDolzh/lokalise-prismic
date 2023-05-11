@@ -151,6 +151,7 @@ async function getStatusForMessageByFilter({
       }
     }
   }
+  console.log('messages', messages)
   const localiseMessagesResponse = await getTranslations(
     'en',
     lokaliseToken,
@@ -205,9 +206,7 @@ export default function App() {
     getValues,
   } = form
 
-  const { languages, isLokaliseTaskNeeded } = getValues()
-
-  const onSubmit = (data: any) => {
+  const onSubmit = () => {
     const {
       prismicZipFile,
       filter,
@@ -217,17 +216,16 @@ export default function App() {
       languages,
       isLokaliseTaskNeeded,
     } = form.getValues()
-    for (var i = 0; i < prismicZipFile.length; i++) {
-      onFileSubmit({
-        file: prismicZipFile[i],
-        filter,
-        lokaliseTaskTitle,
-        lokaliseTaskDescription,
-        lokaliseToken,
-        languages: languages.map(({ id }) => id),
-        isLokaliseTaskNeeded,
-      })
-    }
+
+    onFileSubmit({
+      file: prismicZipFile[0],
+      filter,
+      lokaliseTaskTitle,
+      lokaliseTaskDescription,
+      lokaliseToken,
+      languages: languages.map(({ id }) => id),
+      isLokaliseTaskNeeded,
+    })
   }
 
   const onCheck = async () => {
@@ -251,9 +249,6 @@ export default function App() {
     setValue('lokaliseToken', localStorage.getItem('lokaliseToken') ?? '')
   }, [])
 
-  console.log(watch('isLokaliseTaskNeeded')) // watch input value by passing the name of it
-  //console.log(watch('languages'))
-  console.log(form.getValues())
   return (
     /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
     <Form onSubmit={handleSubmit(onSubmit)}>
@@ -262,6 +257,7 @@ export default function App() {
           <Input
             type="file"
             {...register('prismicZipFile', { required: true })}
+            data-testid="prismic-zip-file"
           />
 
           <Input
@@ -280,6 +276,7 @@ export default function App() {
             type="button"
             variant="outlined"
             onClick={() => {
+              console.log('onCheck')
               onCheck()
             }}
           >
@@ -287,17 +284,24 @@ export default function App() {
           </Button>
         </Side>
         <Side>
-          <FormControlLabel
-            label="No need for Lokalise task"
-            control={
-              <Checkbox
-                onChange={(e) => {
-                  console.log('e.target.checked', e.target.checked)
-                  setValue('isLokaliseTaskNeeded', Boolean(e.target.checked))
-                }}
+          <Controller
+            name="isLokaliseTaskNeeded"
+            control={control}
+            render={({ field: { onChange, value } }) => (
+              <FormControlLabel
+                label="No need for Lokalise task"
+                control={
+                  <Checkbox
+                    checked={value}
+                    onChange={(e) => {
+                      onChange(Boolean(e.target.checked))
+                    }}
+                  />
+                }
               />
-            }
+            )}
           />
+
           <Input
             label="Lokalise Task Title"
             type="text"
