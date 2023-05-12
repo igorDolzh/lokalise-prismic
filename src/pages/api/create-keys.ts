@@ -155,22 +155,22 @@ export default async function handler(
 
     if (process.status === 'finished') {
       onProcessFinished(req, res, lokalise)
+    } else {
+      let inteval = await setInterval(async () => {
+        console.log('inside interval', process)
+        if (process.status === 'finished') {
+          clearInterval(inteval)
+          onProcessFinished(req, res, lokalise)
+        } else {
+          //@ts-ignore
+          process = await lokalise.queuedProcesses().get(process.process_id, {
+            project_id: body.projectId,
+          })
+        }
+      }, 1000)
+
+      console.log('inteval', inteval)
     }
-
-    let inteval = await setInterval(async () => {
-      console.log('inside interval', process)
-      if (process.status === 'finished') {
-        clearInterval(inteval)
-        onProcessFinished(req, res, lokalise)
-      } else {
-        //@ts-ignore
-        process = await lokalise.queuedProcesses().get(process.process_id, {
-          project_id: body.projectId,
-        })
-      }
-    }, 1000)
-
-    console.log('inteval', inteval)
   } catch (e) {
     console.log(e)
     res.status(500).json({ response: e })
