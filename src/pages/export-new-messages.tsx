@@ -46,13 +46,10 @@ async function sendToLokalise({
   const keys: { [key: string]: string } = {}
   const timeTag = `time-${new Date().getTime()}`
   const tags = [...data[messages[0]], timeTag].join(',')
-  console.log('tags', tags)
 
   messages.forEach((message) => {
     keys[message] = message
   })
-
-  console.log('sendToLokalise', Object.keys(keys).length)
 
   async function createKeys(keys: any) {
     const options = {
@@ -76,7 +73,6 @@ async function sendToLokalise({
 
     const response = await fetch(`/api/create-keys`, options)
     const data = await response.json()
-    console.log(data)
   }
 
   await createKeys(keys)
@@ -151,7 +147,7 @@ async function getStatusForMessageByFilter({
       }
     }
   }
-  console.log('messages', messages)
+
   const localiseMessagesResponse = await getTranslations(
     'en',
     lokaliseToken,
@@ -190,7 +186,7 @@ export default function App() {
     lokaliseToken: '',
     isLokaliseTaskNeeded: true,
   }
-  console.log(defaultValues)
+
   const form = useForm({ defaultValues, shouldUseNativeValidation: true })
   const [results, setResults] = React.useState<
     { message: string; isInLocalise: boolean }[]
@@ -276,7 +272,6 @@ export default function App() {
             type="button"
             variant="outlined"
             onClick={() => {
-              console.log('onCheck')
               onCheck()
             }}
           >
@@ -327,10 +322,7 @@ export default function App() {
                 )}
                 getOptionLabel={(option) => option.label}
                 onChange={(event, val) => {
-                  console.log('onchange', val)
                   onChange(val)
-                  console.log(form.getValues())
-                  //setValue('languages', val)
                 }}
                 renderInput={(params) => (
                   <TextField {...params} variant="standard" label="Languages" />

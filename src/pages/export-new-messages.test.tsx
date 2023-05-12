@@ -66,9 +66,9 @@ describe('export new messages', () => {
           {
             file: 'locale/en.json',
             translations: {
-              '3': '3',
-              '*and the answers to them, of course':
-                '*and the answers to them, of course',
+              'Ebooks Index Page': 'Ebooks Index Page',
+              'Tips and insights to boost you and your business':
+                'Tips and insights to boost you and your business',
             },
           },
         ],
@@ -103,13 +103,23 @@ describe('export new messages', () => {
     const checkMessagesButton = screen.getByText(/check messages/i)
     expect(checkMessagesButton).toBeInTheDocument()
 
+    const MessageHeader = screen.queryByText(/Message/)
+    expect(MessageHeader).not.toBeInTheDocument()
+
     const isInsideLocaliseHeader = screen.queryByText(/Is inside Localise/)
     expect(isInsideLocaliseHeader).not.toBeInTheDocument()
 
     await userEvent.click(checkMessagesButton)
     await waitFor(() => {
+      const MessageHeader = screen.getByText(/Message/)
+      expect(MessageHeader).toBeInTheDocument()
       const isInsideLocaliseHeader = screen.getByText(/Is inside Localise/)
       expect(isInsideLocaliseHeader).toBeInTheDocument()
+      const YesStatus = screen.getAllByText(/Yes/)
+      console.log(YesStatus)
+      expect(YesStatus).toHaveLength(2)
+      const NoStatus = screen.getAllByText(/No/)
+      expect(NoStatus).toHaveLength(51)
     })
   })
 })

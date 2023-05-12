@@ -1,6 +1,8 @@
 import { LokaliseApi, Language } from '@lokalise/node-api'
 import type { NextApiRequest, NextApiResponse } from 'next'
 
+import nodeMocks from 'node-mocks-http'
+
 export enum UserGroups {
   general = '[group]',
   reviewersOnly = '[reviewers-group]',
@@ -66,26 +68,74 @@ async function getAssigneeIdObject(
   return {}
 }
 
+async function onProcessFinished(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  lokalise: LokaliseApi,
+) {
+  const body = req.body
+
+  console.log(
+    'body.isLokaliseTaskNeeded',
+    body.isLokaliseTaskNeeded,
+    Boolean(JSON.parse(body.isLokaliseTaskNeeded)),
+  )
+  if (Boolean(JSON.parse(body.isLokaliseTaskNeeded))) {
+    let taskResponse
+
+    const keysForTask = await lokalise.keys().list({
+      filter_tags: body.filter,
+      project_id: body.projectId,
+    })
+    if (keysForTask?.items?.length > 0) {
+      const assigneeIdObject = await getAssigneeIdObject(
+        lokalise,
+        body.languages,
+        body.projectId,
+      )
+      for (const lang of body.languages) {
+        const users = assigneeIdObject[lang]
+        if (users) {
+          taskResponse = await lokalise.tasks().create(
+            {
+              title: `${body.taskTitle}[${new Date().getTime()}]`,
+              description: body.taskDescription,
+              keys: keysForTask?.items?.map((item) => item.key_id),
+              languages: [
+                {
+                  language_iso: lang,
+                  users: users,
+                },
+              ],
+            },
+            { project_id: body.projectId },
+          )
+        }
+      }
+    }
+    res.status(200)
+    res.json({ response: taskResponse })
+  } else {
+    res.status(200)
+    res.json({ response: 'success' })
+  }
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
   try {
-    //console.log("req.body", req.body);
     const body = req.body
+
+    console.log('body', body)
 
     const lokalise = new LokaliseApi({
       apiKey: body.token,
     })
-    //await lokalise.keys().list({ project_id: body.projectId })
-    // const response = await lokalise.keys().create(
-    //   {
-    //     keys: body.keys,
-    //   },
-    //   { project_id: body.projectId }
-    // );
-    console.log('body.keys', body.keys)
-    console.log('body.tags', body.tags)
+
+    console.log('lokalise', lokalise)
+
     let process = await lokalise.files().upload(body.projectId, {
       data: Buffer.from(JSON.stringify(body.keys)).toString('base64'),
       filename: 'from-program.json',
@@ -101,56 +151,17 @@ export default async function handler(
       tag_updated_keys: true,
     })
 
+    console.log('process', process)
+
+    if (process.status === 'finished') {
+      onProcessFinished(req, res, lokalise)
+    }
+
     let inteval = await setInterval(async () => {
-      console.log('process', process)
-      if (
-        process.status === 'finished' &&
-        Boolean(JSON.parse(body.isLokaliseTaskNeeded))
-      ) {
-        let taskResponse
+      console.log('inside interval', process)
+      if (process.status === 'finished') {
         clearInterval(inteval)
-
-        const keysForTask = await lokalise.keys().list({
-          filter_tags: body.filter,
-          project_id: body.projectId,
-        })
-        //console.log("response", JSON.stringify(response));
-        //console.log("response?.items.length", response?.items.length);
-        console.log('keysForTask?.items?.length', keysForTask?.items?.length)
-        if (keysForTask?.items?.length > 0) {
-          const assigneeIdObject = await getAssigneeIdObject(
-            lokalise,
-            body.languages,
-            body.projectId,
-          )
-          console.log('assigneeIdObject', JSON.stringify(assigneeIdObject))
-          console.log(
-            'response?.items?.map((item) => item.key_id)',
-            JSON.stringify(keysForTask?.items?.map((item) => item.key_id)),
-          )
-          for (const lang of body.languages) {
-            const users = assigneeIdObject[lang]
-            if (users) {
-              taskResponse = await lokalise.tasks().create(
-                {
-                  title: `${body.taskTitle}[${new Date().getTime()}]`,
-                  description: body.taskDescription,
-                  keys: keysForTask?.items?.map((item) => item.key_id),
-                  languages: [
-                    {
-                      language_iso: lang,
-                      users: users,
-                    },
-                  ],
-                },
-                { project_id: body.projectId },
-              )
-              //console.log(taskResponse);
-            }
-          }
-        }
-
-        res.status(200).json({ response: taskResponse })
+        onProcessFinished(req, res, lokalise)
       } else {
         //@ts-ignore
         process = await lokalise.queuedProcesses().get(process.process_id, {
@@ -158,7 +169,10 @@ export default async function handler(
         })
       }
     }, 1000)
+
+    console.log('inteval', inteval)
   } catch (e) {
+    console.log(e)
     res.status(500).json({ response: e })
   }
 }
