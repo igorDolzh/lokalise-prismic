@@ -4,6 +4,12 @@ import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
 import FormControlLabel from '@mui/material/FormControlLabel'
+import Backdrop from '@mui/material/Backdrop'
+import CircularProgress from '@mui/material/CircularProgress'
+import Snackbar from '@mui/material/Snackbar'
+import Alert from '@mui/material/Alert'
+
+import fetch from 'node-fetch'
 
 import JSZip from 'jszip'
 
@@ -33,6 +39,7 @@ async function sendToLokalise({
   languages,
   filter,
   isLokaliseTaskNeeded,
+  onSuccess,
 }: {
   data: { [key: string]: string[] }
   lokaliseTaskTitle: string
@@ -41,6 +48,7 @@ async function sendToLokalise({
   languages: string[]
   filter: string
   isLokaliseTaskNeeded: boolean
+  onSuccess: Function
 }) {
   const messages = Object.keys(data)
   const keys: { [key: string]: string } = {}
@@ -71,12 +79,15 @@ async function sendToLokalise({
       }),
     }
 
-    const response = await fetch(`/api/create-keys`, options)
-    const data = await response.json()
+    const serverURL =
+      process.env.NODE_ENV === 'test' ? 'https://localhost:123' : ''
+
+    await fetch(`${serverURL}/api/create-keys`, options)
   }
 
   await createKeys(keys)
-  console.log(`New keys successfully pushed!`)
+
+  onSuccess()
 }
 
 async function onFileSubmit({
@@ -87,6 +98,7 @@ async function onFileSubmit({
   lokaliseToken,
   languages,
   isLokaliseTaskNeeded,
+  onSuccess,
 }: {
   file: any
   filter: string
@@ -95,6 +107,7 @@ async function onFileSubmit({
   lokaliseToken: string
   languages: string[]
   isLokaliseTaskNeeded: boolean
+  onSuccess: Function
 }) {
   let messages: { [key: string]: string[] } = {}
   const zip = await JSZip.loadAsync(file)
@@ -112,7 +125,7 @@ async function onFileSubmit({
     }
   }
 
-  sendToLokalise({
+  await sendToLokalise({
     data: messages,
     lokaliseTaskTitle,
     lokaliseTaskDescription,
@@ -120,6 +133,7 @@ async function onFileSubmit({
     languages,
     filter,
     isLokaliseTaskNeeded,
+    onSuccess,
   })
 }
 
@@ -177,6 +191,8 @@ export const usePersistForm = ({
 }
 
 export default function App() {
+  const [loading, setLoading] = React.useState(false)
+  const [successMessage, setSuccessMessage] = React.useState('')
   const defaultValues = {
     languages: [],
     prismicZipFile: '',
@@ -196,13 +212,19 @@ export default function App() {
     register,
     handleSubmit,
     watch,
-    formState,
     control,
     setValue,
     getValues,
+    formState: { errors },
+    setError,
   } = form
 
-  const onSubmit = () => {
+  const { isLokaliseTaskNeeded } = form.getValues()
+
+  watch('isLokaliseTaskNeeded')
+
+  const onSubmit = async () => {
+    setLoading(true)
     const {
       prismicZipFile,
       filter,
@@ -213,7 +235,13 @@ export default function App() {
       isLokaliseTaskNeeded,
     } = form.getValues()
 
-    onFileSubmit({
+    // setError('languages', {
+    //   type: string,
+    //   message: 'Choose one of the language',
+    //   types: MultipleFieldErrors,
+    // })
+
+    await onFileSubmit({
       file: prismicZipFile[0],
       filter,
       lokaliseTaskTitle,
@@ -221,10 +249,15 @@ export default function App() {
       lokaliseToken,
       languages: languages.map(({ id }) => id),
       isLokaliseTaskNeeded,
+      onSuccess: () => {
+        setLoading(false)
+        setSuccessMessage('Messages are uploaded in Lokalise')
+      },
     })
   }
 
   const onCheck = async () => {
+    setLoading(true)
     const { prismicZipFile, filter, lokaliseToken } = form.getValues()
     const result = await getStatusForMessageByFilter({
       file: prismicZipFile[0],
@@ -232,6 +265,8 @@ export default function App() {
       lokaliseToken,
     })
     setResults(result)
+    setLoading(false)
+    setSuccessMessage('Check is finished')
   }
 
   React.useEffect(() => {
@@ -247,7 +282,7 @@ export default function App() {
 
   return (
     /* "handleSubmit" will validate your inputs before invoking "onSubmit" */
-    <Form onSubmit={handleSubmit(onSubmit)}>
+    <Form>
       <Wrapper>
         <Side>
           <Input
@@ -300,22 +335,28 @@ export default function App() {
           <Input
             label="Lokalise Task Title"
             type="text"
-            {...register('lokaliseTaskTitle', { required: true })}
+            {...register('lokaliseTaskTitle', {
+              required: !isLokaliseTaskNeeded,
+            })}
           />
 
           <Input
             label="Lokalise Task Description"
             type="text"
-            {...register('lokaliseTaskDescription', { required: true })}
+            {...register('lokaliseTaskDescription', {
+              required: !isLokaliseTaskNeeded,
+            })}
           />
 
           <Controller
             name="languages"
             control={control}
+            rules={{ required: true }}
             render={({ field: { onChange, value } }) => (
               <Autocomplete
                 multiple
                 value={value || null}
+                data-testid="autocomplete"
                 id="tags-standard"
                 options={languageOptions.filter(
                   ({ id }) => !value.map(({ id }) => id).includes(id),
@@ -334,6 +375,7 @@ export default function App() {
             type="submit"
             variant="outlined"
             disabled={!results.some(({ isInLocalise }) => isInLocalise)}
+            onClick={handleSubmit(onSubmit)}
           >
             Submit
           </Button>
@@ -352,6 +394,29 @@ export default function App() {
             </Row>
           ))}
         </WrapperColumn>
+      )}
+      {loading && (
+        <Backdrop
+          sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+          open={loading}
+        >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+      )}
+      {Boolean(successMessage) && (
+        <Snackbar
+          open={Boolean(successMessage)}
+          autoHideDuration={10000}
+          onClose={() => setSuccessMessage('')}
+        >
+          <Alert
+            onClose={() => setSuccessMessage('')}
+            severity="success"
+            sx={{ width: '100%' }}
+          >
+            {successMessage}
+          </Alert>
+        </Snackbar>
       )}
     </Form>
   )
