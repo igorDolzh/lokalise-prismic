@@ -17,39 +17,31 @@ async function getAssigneeIdObject(
   languageList: string[],
   projectId: string,
 ): Promise<{ [language: string]: number[] }> {
-  const teams = await lokalise.teams().list()
-  console.log('teams success', teams.items)
+  const teams = await lokalise.teams.list()
   const supportedTaskLanguagesParsed = languageList
-  const languages = await lokalise.languages().list({
+  const languages = await lokalise.languages.list({
     project_id: projectId,
   })
-  const langaugeList = languages.items.map(
+  const langaugeList = languages.map(
     ({ lang_iso: langISO }: { lang_iso: string }) => langISO,
   )
-  const team = teams.items.find(
-    ({ name }: { name: string }) => name === teamName,
-  ) //Get Pleo Team. At the moment it is a single team, but it could be changed in the future
-
+  const team = teams.find(({ name }: { name: string }) => name === teamName) //Get Pleo Team. At the moment it is a single team, but it could be changed in the future
   if (team) {
-    const userGroups = await lokalise.userGroups().list({
+    const userGroups = await lokalise.userGroups.list({
       team_id: team.team_id,
     })
-
     const assigneeIdObject: { [language: string]: number[] } = {}
-
     langaugeList.forEach((language: string) => {
-      const userGroupsWithLanguage = userGroups.items.filter(
-        (userGroupDetails) => {
-          const languageListInPermissions =
-            userGroupDetails.permissions.languages.map(
-              ({ lang_iso: langISO }: { lang_iso: string }) => langISO,
-            )
-          return (
-            languageListInPermissions.includes(language) &&
-            userGroupDetails.name.includes(UserGroups.general) //translators, not reviewers
+      const userGroupsWithLanguage = userGroups.filter((userGroupDetails) => {
+        const languageListInPermissions =
+          userGroupDetails.permissions.languages.map(
+            ({ lang_iso: langISO }: { lang_iso: string }) => langISO,
           )
-        },
-      )
+        return (
+          languageListInPermissions.includes(language) &&
+          userGroupDetails.name.includes(UserGroups.general) //translators, not reviewers
+        )
+      })
       const members: number[] = userGroupsWithLanguage.reduce(
         (acc: number[], userGroup: any) => {
           return [...acc, ...userGroup.members]
@@ -75,44 +67,45 @@ async function onProcessFinished(
 ) {
   const body = req.body
 
-  console.log(
-    'body.isLokaliseTaskNeeded',
-    body.isLokaliseTaskNeeded,
-    Boolean(JSON.parse(body.isLokaliseTaskNeeded)),
-  )
   if (Boolean(JSON.parse(body.isLokaliseTaskNeeded))) {
     let taskResponse
 
-    const keysForTask = await lokalise.keys().list({
+    const keysForTask = await lokalise.keys.list({
       filter_tags: body.filter,
       project_id: body.projectId,
     })
-    if (keysForTask?.items?.length > 0) {
-      const assigneeIdObject = await getAssigneeIdObject(
-        lokalise,
-        body.languages,
-        body.projectId,
-      )
-      for (const lang of body.languages) {
-        const users = assigneeIdObject[lang]
-        if (users) {
-          taskResponse = await lokalise.tasks().create(
-            {
-              title: `${body.taskTitle}[${new Date().getTime()}]`,
-              description: body.taskDescription,
-              keys: keysForTask?.items?.map((item) => item.key_id),
-              languages: [
-                {
-                  language_iso: lang,
-                  users: users,
-                },
-              ],
-            },
-            { project_id: body.projectId },
-          )
-        }
-      }
+
+    if (keysForTask?.length === 0) {
+      res.status(402)
+      res.json({ response: 'Not keys found' })
+      return
     }
+
+    const assigneeIdObject = await getAssigneeIdObject(
+      lokalise,
+      body.languages,
+      body.projectId,
+    )
+
+    if (Object.keys(assigneeIdObject).length === 0) {
+      res.status(402)
+      res.json({ response: 'Something wrong with assignees' })
+      return
+    }
+
+    taskResponse = await lokalise.tasks.create(
+      {
+        title: body.taskTitle,
+        description: body.taskDescription,
+        keys: keysForTask?.map((item) => item.key_id),
+        languages: Object.keys(assigneeIdObject).map((lang) => ({
+          language_iso: lang,
+          users: assigneeIdObject[lang],
+        })),
+      },
+      { project_id: body.projectId },
+    )
+
     res.status(200)
     res.json({ response: taskResponse })
   } else {
@@ -128,22 +121,17 @@ export default async function handler(
   try {
     const body = req.body
 
-    console.log('body', body)
-
     const lokalise = new LokaliseApi({
       apiKey: body.token,
     })
 
-    console.log('lokalise', lokalise)
-
-    let process = await lokalise.files().upload(body.projectId, {
+    let process = await lokalise.files.upload(body.projectId, {
       data: Buffer.from(JSON.stringify(body.keys)).toString('base64'),
       filename: 'from-program.json',
       lang_iso: 'en',
       tags: body.tags.split(','),
       replace_modified: true,
       use_automations: true,
-      convert_placeholders: false,
       apply_tm: true,
       detect_icu_plurals: false,
       tag_inserted_keys: true,
@@ -151,13 +139,10 @@ export default async function handler(
       tag_updated_keys: true,
     })
 
-    console.log('process', process)
-
     if (process.status === 'finished') {
       onProcessFinished(req, res, lokalise)
     } else {
       let inteval = await setInterval(async () => {
-        console.log('inside interval', process)
         if (process.status === 'finished') {
           clearInterval(inteval)
           onProcessFinished(req, res, lokalise)
@@ -168,11 +153,10 @@ export default async function handler(
           })
         }
       }, 1000)
-
-      console.log('inteval', inteval)
     }
   } catch (e) {
     console.log(e)
-    res.status(500).json({ response: e })
+    res.status(500)
+    res.json({ response: e })
   }
 }

@@ -1422,12 +1422,13 @@
   dependencies:
     fuzzy-match-utils "^1.2.0"
 
-"@lokalise/node-api@~8.0.2":
-  version "8.0.2"
-  resolved "https://registry.yarnpkg.com/@lokalise/node-api/-/node-api-8.0.2.tgz#480c501096580f8cf0926f7dd0cf502f3bd159fb"
-  integrity sha512-ClJwzjrytyauxazm3omc7NN4x8IiMZTIqTVvFAidqvXLfwr7sWchaKm6gEh/17LJOO5SDyLvNh8UlfZCSXCenA==
+"@lokalise/node-api@5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@lokalise/node-api/-/node-api-5.3.0.tgz#37a8a2ddb60fcfcd548bd0f513f8a64823d1a9d5"
+  integrity sha512-zyN0yEVW1NgTWVk226l9uXJITZp22lEmEgZ8AjhlHPCqL8YeDE3M0ebgQBVW7JsXhxU/pOP1OiBoPSnVDevpXQ==
   dependencies:
-    got "^11.8.3"
+    got "^11.8.0"
+    typescript "^4.1.2"
 
 "@mui/base@5.0.0-alpha.118":
   version "5.0.0-alpha.118"
@@ -3584,7 +3585,7 @@ gopd@^1.0.1:
   dependencies:
     get-intrinsic "^1.1.3"
 
-got@^11.8.3:
+got@^11.8.0:
   version "11.8.6"
   resolved "https://registry.yarnpkg.com/got/-/got-11.8.6.tgz#276e827ead8772eddbcfc97170590b841823233a"
   integrity sha512-6tfZ91bOr7bOXnK7PRDCGBLa1H4U080YHNaAQ2KsMGlLEzRbk44nsZF2E1IeRc3vtJHPVbKCYgdFbaGO2ljd8g==
@@ -5948,6 +5949,11 @@ typescript@4.9.4:
   version "4.9.4"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.9.4.tgz#a2a3d2756c079abda241d75f149df9d561091e78"
   integrity sha512-Uz+dTXYzxXXbsFpM86Wh3dKCxrQqUcVMxwU54orwlJjOpO3ao8L7j5lH+dWfTwgCwIuM9GQ2kvVotzYJMXTBZg==
+
+typescript@^4.1.2:
+  version "4.9.5"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.9.5.tgz#095979f9bcc0d09da324d58d03ce8f8374cbe65a"
+  integrity sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==
 
 unbox-primitive@^1.0.2:
   version "1.0.2"
