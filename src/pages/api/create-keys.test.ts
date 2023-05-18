@@ -348,7 +348,6 @@ describe('create keys', () => {
 
     expect(lokaliseUploadNock.isDone()).toBe(true)
 
-    // And here we're checking our mocks that we created in beforeEach function
     expect(res.json).toHaveBeenCalledTimes(1)
     expect(res.status).toBeCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({ response: 'success' })
@@ -691,7 +690,6 @@ describe('create keys', () => {
       expect(lokaliseUserGroups.isDone()).toBe(false)
       expect(lokaliseCreateTasks.isDone()).toBe(false)
 
-      // And here we're checking our mocks that we created in beforeEach function
       expect(res.json).toHaveBeenCalledTimes(1)
       expect(res.status).toBeCalledWith(402)
       expect(res.json).toHaveBeenCalledWith({
